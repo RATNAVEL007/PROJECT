@@ -1,96 +1,70 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder
 import joblib
 import matplotlib.pyplot as plt
-from tensorflow.keras.models import load_model
-import base64
 
-st.set_page_config(page_title="Cirrhosis Disease Diagnosis", page_icon="🩺", layout="wide")
+# Set page configuration
+st.set_page_config(page_title="Non-Verbal Communication Preferences", page_icon="🌍", layout="wide")
 
-def add_bg_from_base64(image_path):
-    with open(image_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode()
+# Custom CSS to enhance the app's appearance
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f4f4f9;
+        color: #333;
+    }
 
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url("data:image/png;base64,{encoded_string}");
-            background-attachment: fixed;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }}
-
-        .stApp > div:nth-of-type(1) > div:not(.stSidebar) {{
-            color: black;
-        }}
-
-        .stSidebar, .stSidebar p, .stSidebar label {{
-            color: black !important;
-        }}
-
-        .stTextInput, .stButton, .stTimeInput {{
-            color: black !important;
-        }}
-
-        .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
-            color: black !important;
-        }}
-
-        div.stButton > button:first-child {{
-            background-color: white;
-            color: black;
-            border: 2px solid black;
-            font-size: 16px;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: bold;
-        }}
-    .custom-result-box {{
-        background-color: white;
-        color: black;
-        border: 2px solid black;
-        font-size: 18px;
-        padding: 10px;
+    .stButton > button {
+        background-color: #007bff;
+        color: white;
+        border: none;
         border-radius: 8px;
+        font-size: 16px;
+        padding: 10px 20px;
         font-weight: bold;
-        text-align: center;
-        }}
+    }
 
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    .stButton > button:hover {
+        background-color: #0056b3;
+    }
 
-#add_bg_from_base64("51ELJDSS+BL._AC_UF894,1000_QL80_.jpg")
+    .stSidebar {
+        background-color: #e9ecef;
+    }
+
+    .stDataFrame {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 @st.cache_data
 def load_data():
-    return pd.read_csv('cirrhosis.csv')
+    return pd.read_csv('non-verbal tourist data(1).csv')
 
 data = load_data()
-X = data.drop('Status', axis=1)  # Using 'Status' as the target column
-y = data['Status']
+X = data.drop('Type of Client', axis=1)
+y = data['Type of Client']
 
 label_encoder = LabelEncoder()
 y_encoded = label_encoder.fit_transform(y)
 
 @st.cache_resource
 def load_pipeline_and_model():
-    pipeline = joblib.load('cirrhosis_pipeline.pkl')  # Load the preprocessing pipeline
-    model = load_model('cirrhosis_disease_model.keras')  # Load the trained model
+    pipeline = joblib.load('non_verbal_pipeline.pkl')
+    model = joblib.load('non_verbal_tourist_model.pkl')
     return pipeline, model
 
 pipeline, model = load_pipeline_and_model()
 
-st.title("🩺 Cirrhosis Disease Diagnosis Prediction")
+st.title("🌍 Non-Verbal Communication Preferences Prediction")
 st.markdown("---")
 
 st.sidebar.header("🛠️ Feature Selection")
@@ -107,12 +81,12 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.subheader("✨ Selected Features")
     feature_df = pd.DataFrame([input_data])
-    st.dataframe(feature_df.T, use_container_width=True)
+    st.dataframe(feature_df.T, use_container_width=True, height=300)
 
 with col2:
     st.subheader("🩺 Make a Prediction")
 
-    if st.button("🔍 Predict Disease", key="predict_button"):
+    if st.button("🔍 Predict Client Type", key="predict_button"):
         with st.spinner("Analyzing..."):
             input_df = pd.DataFrame([input_data])
             input_df = input_df.reindex(columns=X.columns)
@@ -125,14 +99,16 @@ with col2:
 
             try:
                 input_processed = pipeline.transform(input_df)
-                prediction = model.predict(input_processed)
+                prediction = model.predict_proba(input_processed)
                 predicted_class_index = np.argmax(prediction)
                 predicted_class = label_encoder.inverse_transform([predicted_class_index])[0]
-                st.success(f"🌟 **Predicted Status:** {predicted_class.upper()} 🎯")
+                st.success(f"🌟 **Predicted Client Type:** {predicted_class.upper()} 🎯")
+
+                # Plot confidence scores
                 confidence_scores = prediction[0]
                 fig, ax = plt.subplots()
-                ax.bar(label_encoder.classes_, confidence_scores, color='#1a76ff')
-                ax.set_xlabel('Status Classes')
+                ax.bar(label_encoder.classes_, confidence_scores, color='#007bff')
+                ax.set_xlabel('Client Types')
                 ax.set_ylabel('Confidence')
                 ax.set_title('Prediction Confidence Scores')
                 ax.set_ylim(0, 1)
@@ -141,15 +117,14 @@ with col2:
                 st.pyplot(fig)
 
             except Exception as e:
-                st.error(f"Error in transforming input data: {e}")
+                st.error(f"Error during prediction: {e}")
                 st.stop()
 
 st.markdown("---")
 st.subheader("🔍 About This Tool")
 st.write("""
-🩺 This tool uses a deep learning model to predict cirrhosis disease status based on various patient characteristics. Choose the features in the sidebar and click '🔍 Predict Disease' to get a diagnosis. The confidence scores show how confident the model is about each possible status class.
+🌿 This tool predicts the type of client based on non-verbal communication preferences. Select the features from the sidebar and click '🔍 Predict Client Type' to get a prediction. The confidence scores provide insights into the model's certainty about each client type. Use this tool to better understand and cater to client preferences! 💼
 """)
 
 st.markdown("---")
-st.markdown("Created by RATNAVEL")
-
+st.markdown("Created by KISHORE")
