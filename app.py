@@ -73,7 +73,7 @@ def add_bg_from_base64(image_path):
 
 @st.cache_data
 def load_data():
-    return pd.read_csv('/content/cirrhosis.csv')
+    return pd.read_csv('cirrhosis.csv')
 
 data = load_data()
 X = data.drop('Status', axis=1)  # Using 'Status' as the target column
